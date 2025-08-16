@@ -1,15 +1,14 @@
 {
   "dependencies": {
     "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
     "express": "^5.1.0",
     "firebase-admin": "^13.4.0",
-    "nodemailer": "^7.0.5",
-    "dotenv": "^16.0.3"
+    "nodemailer": "^7.0.5"
   },
   "name": "api_signup",
   "version": "1.0.0",
   "main": "server.js",
-  "devDependencies": {},
   "scripts": {
     "start": "node server.js"
   },
