@@ -1,15 +1,15 @@
 const express = require('express');
 const nodemailer = require('nodemailer');
 const admin = require('firebase-admin');
+const crypto = require('crypto');
 const cors = require('cors');
-require('dotenv').config();
 
 const app = express();
 app.use(express.json());
 app.use(cors());
 
 // Khởi tạo Firebase Admin SDK
-const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT || '{}');
+const serviceAccount = require('./firebase-service-account.json'); // Thay bằng đường dẫn đến tệp khóa dịch vụ Firebase của bạn
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
 });
@@ -19,8 +19,8 @@ const db = admin.firestore();
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-    user: process.env.GMAIL_USER,
-    pass: process.env.GMAIL_APP_PASSWORD,
+    user: 'dohoangtung313@gmail.com', // Thay bằng địa chỉ Gmail của bạn
+    pass: 'wztz dpxv xkrm qiws', // Thay bằng Mật khẩu ứng dụng 16 ký tự của bạn
   },
 });
 
@@ -36,27 +36,26 @@ app.post('/send-verification-code', async (req, res) => {
     // Tạo mã xác minh 6 chữ số
     const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // Lưu mã vào Firestore với thời gian hết hạn (15 phút)
+    // Lưu mã vào Firestore với thời gian hết hạn (ví dụ: 15 phút)
     await db.collection('verificationCodes').doc(email).set({
       code: verificationCode,
       createdAt: admin.firestore.FieldValue.serverTimestamp(),
       expiresAt: admin.firestore.Timestamp.fromDate(
-        new Date(Date.now() + 15 * 60 * 1000)
+        new Date(Date.now() + 15 * 60 * 1000) // 15 phút kể từ bây giờ
       ),
     });
 
     // Tùy chọn email
     const mailOptions = {
-      from: `"Ứng Dụng Đăng Ký" <${process.env.GMAIL_USER}>`,
+      from: 'dohoangtung313@gmail.com', // Thay bằng địa chỉ Gmail của bạn
       to: email,
-      subject: 'Mã Xác Minh Đăng Nhập',
+      subject: 'Mã Xác Minh Đăng Ký',
       text: `Mã xác minh của bạn là: ${verificationCode}. Mã này có hiệu lực trong 15 phút.`,
       html: `<p>Mã xác minh của bạn là: <b>${verificationCode}</b>. Mã này có hiệu lực trong 15 phút.</p>`,
     };
 
     // Gửi email
     await transporter.sendMail(mailOptions);
-    console.log('Email sent to:', email);
     res.status(200).json({ message: 'Mã xác minh đã được gửi đến email của bạn.' });
   } catch (error) {
     console.error('Lỗi khi gửi email xác minh:', error);
@@ -81,7 +80,9 @@ app.post('/verify-code', async (req, res) => {
     const data = doc.data();
     const now = new Date();
 
+    // Kiểm tra xem mã có hợp lệ và chưa hết hạn không
     if (data.code === code && data.expiresAt.toDate() > now) {
+      // Tùy chọn: xóa mã sau khi xác minh thành công
       await db.collection('verificationCodes').doc(email).delete();
       res.status(200).json({ message: 'Xác minh thành công' });
     } else {
